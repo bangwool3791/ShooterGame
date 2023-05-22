@@ -82,6 +82,21 @@ protected:
 	void TraceForItems();
 	UFUNCTION()
 	void FinishCrosshairBulletFire();
+
+	/* Spawns a default weapon and squips it*/
+	class AWeapon* SpawnDefaultWeapon();
+
+	/* Takes a weapon and attaches it to the mesh*/
+	void EquipWeapon(class AWeapon* WeaponToEquip);
+
+	/* Detach weapon an let it fall to the ground*/
+	void DropWeapon();
+
+	void SelectButtonPressed();
+	void SelectButtonReleased();
+
+	/* Drops currently equipped Weapon and Equips TraceHitItem*/
+	void SwapWeapon(AWeapon* WeaponeToSwap);
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -157,6 +172,27 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"));
 	class AItem* TraceHitItemLastFrame;
+
+	/* Distance outward from the camera for the interp destination */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly,  Category = Items, meta = (AllowPrivateAccess = "true"));
+	float CameraInterpDistance;
+
+	/* Distance upward from the camera for the interp destination */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"));
+	float CameraInterpElevation;
+
+	/* Currently equipped Weapon*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	AWeapon* EquippedWeapon;
+
+	/*
+	* TSubclassOf is a template type that represents a class or a blueprint in the object hierarchy.
+	  It is used to define a variable or a parameter that can hold a reference to a subclass or derived class of a specific base class.
+	*/
+	/* Set this in Blueprints for the default weapon class */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	TSubclassOf<AWeapon> DefaultWeaponClass;
+
 	/* True when aiming */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
 	bool bAiming;
@@ -194,6 +230,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crossharis, meta = (AllowPrivateAccess = "true"));
 	float CrosshairShootingFactor;
 
+	/* The item currently hit by out trace in TraceForItems (coud be null)*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crossharis, meta = (AllowPrivateAccess = "true"));
+	AItem* TraceHitItem;
+
 	float ShootTimeDuration;
 	bool bFiringBullet;
 	FTimerHandle CrosshairShootTimer;
@@ -215,7 +255,6 @@ private:
 
 	/* Number of overlapped AItems*/
 	int8 OverlappedItemCount;
-
 public:
 	/* Returns CameraBoom subobject*/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -231,4 +270,8 @@ public:
 
 	/* Adds/subtracts to/from OverlappedItemCOunt and updates bShouldTraceForItems*/
 	void IncreamentOverlappedItemCount(int8 Amount);
+
+	FVector GetCameraInterpLocation();
+
+	void GetPickUpItem(AItem* Item);
 };

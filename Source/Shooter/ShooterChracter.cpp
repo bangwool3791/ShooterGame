@@ -12,6 +12,10 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Item.h"
 #include "Components\WidgetComponent.h"
+#include "Weapon.h"
+
+#include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
 
 // Sets default values
 AShooterChracter::AShooterChracter()
@@ -51,6 +55,9 @@ AShooterChracter::AShooterChracter()
 	, bFireButtonPressed{ false }
 	, bShouldTraceForItems{false}
 
+	// Camera interp location valuable
+	, CameraInterpDistance(250.f)
+	, CameraInterpElevation(65.f)
 
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -90,6 +97,8 @@ void AShooterChracter::BeginPlay()
 		CameraDefaultFOV = GetFollowCamera()->FieldOfView;
 		CameraCurrentFOV = CameraDefaultFOV;
 	}
+	// Spawn the default weapon and equip it
+	EquipWeapon(SpawnDefaultWeapon());
 }
 
 // Called every frame
@@ -507,6 +516,163 @@ void AShooterChracter::FinishCrosshairBulletFire()
 	bFiringBullet = false;
 }
 
+float AShooterChracter::GetCrosshairSpreadMultiplier() const
+{
+	return CrosshairSpreadMultiplier;
+}
+
+void AShooterChracter::IncreamentOverlappedItemCount(int8 Amount)
+{
+	if (OverlappedItemCount + Amount <= 0)
+	{
+		OverlappedItemCount = 0;
+		bShouldTraceForItems = false;
+	}
+	else
+	{
+		OverlappedItemCount += Amount;
+		bShouldTraceForItems = true;
+	}
+}
+
+void AShooterChracter::TraceForItems()
+{
+	if (bShouldTraceForItems)
+	{
+
+		FHitResult ItemTraceResult;
+		FVector HitLocation;
+		if (TraceUnderCrosshairs(ItemTraceResult, HitLocation))
+		{
+			if (ItemTraceResult.bBlockingHit)
+			{
+				//AActor* pActor = ItemTraceResult.GetActor();
+				//FString ActorName{};
+				//pActor->GetName(ActorName);
+				//UE_LOG(LogTemp, Warning, TEXT("Here %s"), *ItemTraceResult.GetActor()->GetActorNameOrLabel());
+				//UE_LOG(LogTemp, Warning, TEXT("Here 2 %s"), *ActorName);
+
+				TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
+				FString str;
+
+				if (TraceHitItem)
+				{
+					TraceHitItem->GetName(str);
+					UE_LOG(LogTemp, Warning, TEXT("Here %s"), *str);
+				}
+
+				if (TraceHitItem && TraceHitItem->GetPickupWidget())
+				{
+
+					UE_LOG(LogTemp, Warning, TEXT("Here 1"));
+
+					TraceHitItem->GetPickupWidget()->SetVisibility(true);
+				}
+
+				if (TraceHitItemLastFrame != TraceHitItem)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Here 2"));
+
+					if (TraceHitItemLastFrame && TraceHitItemLastFrame->GetPickupWidget())
+					{
+
+						UE_LOG(LogTemp, Warning, TEXT("Here 3"));
+
+						TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+
+					}
+				}
+				TraceHitItemLastFrame = TraceHitItem;
+			}
+		}
+	}
+	else 
+	{
+		if (TraceHitItemLastFrame && TraceHitItemLastFrame->GetPickupWidget())
+		{
+			TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+		}
+	}
+}
+
+AWeapon* AShooterChracter::SpawnDefaultWeapon()
+{
+	// Check the TSubclassOf variable
+	if (DefaultWeaponClass)
+	{
+		// Spawn the Weapon
+		return GetWorld()->SpawnActor<AWeapon>(DefaultWeaponClass);
+
+		
+		// Get the Hand Socket
+		//const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(
+		//	FName("RightHandSocket"));
+
+		//if (HandSocket)
+		//{
+		//	// Attach the Weapon to the hand socket
+		//	HandSocket->AttachActor(DefaultWeapon, GetMesh());
+		//}
+
+		//EquippedWeapon = DefaultWeapon;
+	}
+	return nullptr;
+}
+
+void AShooterChracter::EquipWeapon(AWeapon* WeaponToEquip)
+{
+	if (WeaponToEquip)
+	{
+		// Get the Hand Socket
+		const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(
+			FName("RightHandSocket"));
+
+		if (HandSocket)
+		{
+			// Attach the Weapon to the hand socket
+			HandSocket->AttachActor(WeaponToEquip, GetMesh());
+		}
+
+		EquippedWeapon = WeaponToEquip;
+		EquippedWeapon->SetItemState(EItemState::EIS_Equipped);
+	}
+}
+
+void AShooterChracter::DropWeapon()
+{
+	if (EquippedWeapon)
+	{
+		FDetachmentTransformRules DetachmentTransformRules(EDetachmentRule::KeepWorld, true);
+
+		EquippedWeapon->GetItemMesh()->DetachFromComponent(DetachmentTransformRules);
+
+		EquippedWeapon->SetItemState(EItemState::EIS_Falling);
+		EquippedWeapon->ThrowWeapon();
+	}
+}
+
+void AShooterChracter::SelectButtonPressed()
+{
+	if (TraceHitItem)
+	{
+		TraceHitItem->StartItemCurve(this);
+	}
+}
+
+
+void AShooterChracter::SelectButtonReleased()
+{
+
+}
+
+void AShooterChracter::SwapWeapon(AWeapon* WeaponeToSwap)
+{
+	DropWeapon();
+	EquipWeapon(WeaponeToSwap);
+	TraceHitItem = nullptr;
+	TraceHitItemLastFrame = nullptr;
+}
+
 // Called to bind functionality to input
 void AShooterChracter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -534,86 +700,28 @@ void AShooterChracter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		this, &AShooterChracter::AimingButtonPressed);
 	PlayerInputComponent->BindAction("AimingButton", IE_Released,
 		this, &AShooterChracter::AimingButtonReleased);
+
+	PlayerInputComponent->BindAction("Select", IE_Pressed,
+		this, &AShooterChracter::SelectButtonPressed);
+	PlayerInputComponent->BindAction("Select", IE_Released,
+		this, &AShooterChracter::SelectButtonReleased);
 }
 
-float AShooterChracter::GetCrosshairSpreadMultiplier() const
+
+FVector AShooterChracter::GetCameraInterpLocation()
 {
-	return CrosshairSpreadMultiplier;
+	const FVector CameraWorldLocation{ FollowCamera->GetComponentLocation() };
+	const FVector CameraForward{ FollowCamera->GetForwardVector() };
+	// Desired = CameraWolrdLocation + Forward * A + Up * B
+	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.f, 0.f, CameraInterpElevation);
 }
 
-void AShooterChracter::IncreamentOverlappedItemCount(int8 Amount)
+void AShooterChracter::GetPickUpItem(AItem* Item)
 {
-	if (OverlappedItemCount + Amount <= 0)
+	auto Weapon = Cast<AWeapon>(Item);
+
+	if (Weapon)
 	{
-		OverlappedItemCount = 0;
-		bShouldTraceForItems = false;
-	}
-	else
-	{
-		OverlappedItemCount += Amount;
-		bShouldTraceForItems = true;
-	}
-}
-
-void AShooterChracter::TraceForItems()
-{
-	AItem* HitItem = NULL;
-
-	if (bShouldTraceForItems)
-	{
-
-		FHitResult ItemTraceResult;
-		FVector HitLocation;
-		if (TraceUnderCrosshairs(ItemTraceResult, HitLocation))
-		{
-			if (ItemTraceResult.bBlockingHit)
-			{
-				//AActor* pActor = ItemTraceResult.GetActor();
-				//FString ActorName{};
-				//pActor->GetName(ActorName);
-				//UE_LOG(LogTemp, Warning, TEXT("Here %s"), *ItemTraceResult.GetActor()->GetActorNameOrLabel());
-				//UE_LOG(LogTemp, Warning, TEXT("Here 2 %s"), *ActorName);
-
-				HitItem = Cast<AItem>(ItemTraceResult.GetActor());
-				FString str;
-
-				if (HitItem)
-				{
-					HitItem->GetName(str);
-					UE_LOG(LogTemp, Warning, TEXT("Here %s"), *str);
-				}
-
-				if (HitItem && HitItem->GetPickupWidget())
-				{
-
-					UE_LOG(LogTemp, Warning, TEXT("Here 1"));
-
-					HitItem->GetPickupWidget()->SetVisibility(true);
-
-				}
-
-				if (TraceHitItemLastFrame != HitItem)
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Here 2"));
-
-					if (TraceHitItemLastFrame && TraceHitItemLastFrame->GetPickupWidget())
-					{
-
-						UE_LOG(LogTemp, Warning, TEXT("Here 3"));
-
-						TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
-
-					}
-				}
-				TraceHitItemLastFrame = HitItem;
-			}
-		}
-	}
-	else 
-	{
-		if (TraceHitItemLastFrame && TraceHitItemLastFrame->GetPickupWidget())
-		{
-			TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
-		}
+		SwapWeapon(Weapon);
 	}
 }
