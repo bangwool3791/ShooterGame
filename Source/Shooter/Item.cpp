@@ -9,6 +9,7 @@
 #include "Components/SphereComponent.h"
 
 #include "ShooterChracter.h"
+#include "Camera/CameraComponent.h"
 
 // Sets default values
 AItem::AItem()
@@ -23,6 +24,7 @@ AItem::AItem()
 	, bInterping(false)
 	, ItemInterpX(0.f)
 	, ItemInterpY(0.f)
+	, InterpInitialYawOffset(0.f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -243,12 +245,19 @@ void AItem::StartItemCurve(AShooterChracter* Char)
 	//
 	bInterping = true;
 	SetItemState(EItemState::EIS_EquipInterping);
-	
+
 	GetWorldTimerManager().SetTimer(
-		ItemInterpTimer, 
-		this, 
-		&AItem::FinishInterping, 
+		ItemInterpTimer,
+		this,
+		&AItem::FinishInterping,
 		ZCurveTime);
+
+	// Get initial Yaw of the Camera
+	const double CameraRotationYaw{ Character->GetFollowCamera()->GetComponentRotation().Yaw};
+	// Get initial Yaw of the Item
+	const double ItemRotationYaw{ GetActorRotation().Yaw };
+	// INitial Yaw offset between Camera and Item
+	InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
 }
 
 void AItem::FinishInterping()
@@ -259,6 +268,8 @@ void AItem::FinishInterping()
 	{
 		Character->GetPickUpItem(this);
 	}
+	// Set scale back to normal
+	SetActorScale3D(FVector(1.f));
 }
 
 void AItem::ItemInterp(float DeltaTime)
@@ -302,6 +313,18 @@ void AItem::ItemInterp(float DeltaTime)
 		ItemLocation.Z += CurveValue * DeltaZ;
 		SetActorLocation(ItemLocation, true, nullptr, ETeleportType::TeleportPhysics);
 
+		// Camera rotation this frame
+		const FRotator CameraRotation{ Character->GetFollowCamera()->GetComponentRotation() };
+		// Camera roation plus initial Yaw Offset
+		FRotator ItemRotation{ 0.f, CameraRotation.Yaw + InterpInitialYawOffset, 0.f };
+
+		SetActorRotation(ItemRotation, ETeleportType::TeleportPhysics);
+
+		if (ItemScaleCurve)
+		{
+			const float ScaleCurveValue = ItemScaleCurve->GetFloatValue(ElapedTime);
+			SetActorScale3D(FVector(ScaleCurveValue, ScaleCurveValue, ScaleCurveValue));
+		}
 		/*
 		* In the context of Unreal Engine, "sweep" refers to a collision detection mechanism known as "sweeping" or "swept collision."
 		It allows you to check for collisions between a moving object and other objects in the environment, 
