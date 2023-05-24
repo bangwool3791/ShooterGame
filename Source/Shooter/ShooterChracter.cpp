@@ -58,6 +58,9 @@ AShooterChracter::AShooterChracter()
 	// Camera interp location valuable
 	, CameraInterpDistance(250.f)
 	, CameraInterpElevation(65.f)
+	// Starting ammo amounts
+	, Starting9mmAmmo(85)
+	, StartingARAmmo(120)
 
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -99,6 +102,8 @@ void AShooterChracter::BeginPlay()
 	}
 	// Spawn the default weapon and equip it
 	EquipWeapon(SpawnDefaultWeapon());
+
+	InitializeAmmoMap();
 }
 
 // Called every frame
@@ -241,7 +246,12 @@ void AShooterChracter::FireWeapon()
 		AnimInstance->Montage_Play(HipFireMontage);
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
-
+	
+	if (EquippedWeapon)
+	{
+		// Subtract 1 from the Weapon's Ammo
+		EquippedWeapon->DecrementAmmo();
+	}
 	// Start bullet fire timer for crosshairs
 	StartCrosshairBulletFire();
 }
@@ -426,8 +436,11 @@ void AShooterChracter::StartCrosshairBulletFire()
 
 void AShooterChracter::FireButtonPressed()
 {
-	bFireButtonPressed = true;
-	StartFireTimer();
+	if (WeaponHasAmmo())
+	{
+		bFireButtonPressed = true;
+		StartFireTimer();
+	}
 }
 
 void AShooterChracter::FireButtonReleased()
@@ -453,11 +466,14 @@ void AShooterChracter::StartFireTimer()
 
 void AShooterChracter::AutoFireReset()
 {
-	bShouldFire = true;
-
-	if (bFireButtonPressed)
+	if (WeaponHasAmmo())
 	{
-		StartFireTimer();
+		bShouldFire = true;
+
+		if (bFireButtonPressed)
+		{
+			StartFireTimer();
+		}
 	}
 }
 
@@ -671,6 +687,20 @@ void AShooterChracter::SwapWeapon(AWeapon* WeaponeToSwap)
 	EquipWeapon(WeaponeToSwap);
 	TraceHitItem = nullptr;
 	TraceHitItemLastFrame = nullptr;
+}
+
+void AShooterChracter::InitializeAmmoMap()
+{
+	AmmoMap.Add(EAmmoType::EAT_9mm, Starting9mmAmmo);
+	AmmoMap.Add(EAmmoType::EAT_AR, StartingARAmmo);
+}
+
+bool AShooterChracter::WeaponHasAmmo()
+{
+	if (EquippedWeapon == nullptr)
+		return false;
+
+	return EquippedWeapon->GetAmmo() > 0;
 }
 
 // Called to bind functionality to input
