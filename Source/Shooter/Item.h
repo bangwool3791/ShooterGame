@@ -30,7 +30,6 @@ enum class EItemState : uint8
 	EIS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
-
 UCLASS()
 class SHOOTER_API AItem : public AActor
 {

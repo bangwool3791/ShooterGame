@@ -4,14 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AmmoType.h"
 #include "ShooterChracter.generated.h"
 
 UENUM(BlueprintType)
-enum class EAmmoType : uint8
+enum class ECombatState : uint8
 {
-	EAT_9mm UMETA(DisplayName = "9mm"),
-	EAT_AR UMETA(DisplayName = "Asssault Rifle"),
-	EAT_MAX UMETA(DisplayName = "DefaultMAX")
+	ECS_Unoccupied	UMETA(DisplayName = "Unoccupied"),
+	ECS_FireTimerInProgress	UMETA(DisplayName = "FireTimerInProgress"),
+	ECS_Reloading UMETA(DisplayName = "Reloading"),
+
+	ECS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
 UCLASS()
@@ -81,7 +84,7 @@ protected:
 	void StartFireTimer();
 
 	UFUNCTION()
-		void AutoFireReset();
+	void AutoFireReset();
 
 	/* Line trace for items under the crossharis*/
 	bool TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation);
@@ -111,6 +114,17 @@ protected:
 
 	/* Check to make sure our weapon has ammo*/
 	bool WeaponHasAmmo();
+
+	/* FireWeapon funcitons*/
+	void PlayFireSound();
+	void SendBullet();
+	void PlayGunFireMontage();
+	/* Bound to the R key and Gamepad Face Button Left*/
+	void ReloadButtonPressed();
+	/* Handle reloading of the weapon*/
+	void ReloadWeapon();
+	/* Checks to see if we have ammo of the QeuippedWeapon's ammo type*/
+	bool CarryingAmmo();
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -279,7 +293,16 @@ private:
 
 	/* Number of overlapped AItems*/
 	int8 OverlappedItemCount;
+	/* Combat State, can only fire or reload if Unoccupied*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	ECombatState CombatState;
 
+	/* Montage for reload animations*/
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	UAnimMontage* ReloadMontage;
+
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
 public:
 	/* Returns CameraBoom subobject*/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
