@@ -89,6 +89,9 @@ AShooterChracter::AShooterChracter()
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
+	// Create Hand Scene Component 
+	HandSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("HandSceneComp"));
+
 }
 
 // Called when the game starts or when spawned
@@ -106,7 +109,6 @@ void AShooterChracter::BeginPlay()
 
 	InitializeAmmoMap();
 }
-
 // Called every frame
 void AShooterChracter::Tick(float DeltaTime)
 {
@@ -128,6 +130,7 @@ void AShooterChracter::Tick(float DeltaTime)
 
 void AShooterChracter::MoveForward(float Value)
 {
+
 	if ((Controller != nullptr) && Value != 0)
 	{
 		// find out which way is forward
@@ -141,6 +144,7 @@ void AShooterChracter::MoveForward(float Value)
 
 void AShooterChracter::MoveRight(float Value)
 {
+
 	if ((Controller != nullptr) && Value != 0)
 	{
 		// find out which way is forward
@@ -494,7 +498,7 @@ void AShooterChracter::FinishCrosshairBulletFire()
 
 void AShooterChracter::FinishReloading()
 {
-	// Update the COmbat State
+	// Update the Combat State
 	CombatState = ECombatState::ECS_Unoccupied;
 
 	if (EquippedWeapon == nullptr) return;
@@ -774,7 +778,7 @@ void AShooterChracter::ReloadWeapon()
 	// Do we have ammo of the correct type ?
 	// TODO: Create bool CarryingAmmo()
 
-	if (CarryingAmmo()) // replace with CarryingAmmo()
+	if (CarryingAmmo() && EquippedWeapon->GetAmmo() != EquippedWeapon->GetMagazineCapacity()) // replace with CarryingAmmo()
 	{
 		CombatState = ECombatState::ECS_Reloading;
 
@@ -798,6 +802,32 @@ bool AShooterChracter::CarryingAmmo()
 		return AmmoMap[AmmoType] > 0;
 	}
 	return false;
+}
+
+void AShooterChracter::GrabClip()
+{
+	if (EquippedWeapon == nullptr) return;
+	if (HandSceneComponent == nullptr) return;
+	// Index for the clip bone on the Equipped Weapon
+	int32 ClipBoneIndex{ EquippedWeapon->GetItemMesh()->GetBoneIndex(EquippedWeapon->GetClipBoneName()) };
+	// Store the transform of the clip
+	ClipTranform = EquippedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
+
+	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
+	HandSceneComponent->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("hand_l")));
+	HandSceneComponent->SetWorldTransform(ClipTranform);
+
+	EquippedWeapon->SetMovingClip(true);
+
+	UE_LOG(LogTemp, Warning, TEXT("void AShooterChracter::GrabClip()"));
+}
+
+
+void AShooterChracter::ReleaseClip()
+{
+	EquippedWeapon->SetMovingClip(false);
+
+	UE_LOG(LogTemp, Warning, TEXT("ReleaseClip"));
 }
 
 // Called to bind functionality to input
