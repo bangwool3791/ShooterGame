@@ -69,8 +69,10 @@ public :
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE FName GetReloadMontageSection() const { return ReloadMontageSection; }
 	FORCEINLINE FName GetClipBoneName()const { return ClipBoneName; }
-	
+
 	void ReloadAmmo(int32 Amount);
 
 	FORCEINLINE void SetMovingClip(bool Move) { bMovingClip = Move; }
+
+	bool ClipIsFull();
 };

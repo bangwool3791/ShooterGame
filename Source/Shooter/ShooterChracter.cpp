@@ -670,6 +670,11 @@ void AShooterChracter::SelectButtonPressed()
 	if (TraceHitItem)
 	{
 		TraceHitItem->StartItemCurve(this);
+
+		if (TraceHitItem->GetPickupSound())
+		{
+			UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickupSound());
+		}
 	}
 }
 
@@ -778,7 +783,7 @@ void AShooterChracter::ReloadWeapon()
 	// Do we have ammo of the correct type ?
 	// TODO: Create bool CarryingAmmo()
 
-	if (CarryingAmmo() && EquippedWeapon->GetAmmo() != EquippedWeapon->GetMagazineCapacity()) // replace with CarryingAmmo()
+	if (CarryingAmmo() && !EquippedWeapon->ClipIsFull()) // replace with CarryingAmmo()
 	{
 		CombatState = ECombatState::ECS_Reloading;
 
@@ -878,10 +883,16 @@ FVector AShooterChracter::GetCameraInterpLocation()
 
 void AShooterChracter::GetPickUpItem(AItem* Item)
 {
+	if (Item->GetEquipSound())
+	{
+		UGameplayStatics::PlaySound2D(this, Item->GetEquipSound());
+	}
+
 	auto Weapon = Cast<AWeapon>(Item);
 
 	if (Weapon)
 	{
 		SwapWeapon(Weapon);
+		
 	}
 }
