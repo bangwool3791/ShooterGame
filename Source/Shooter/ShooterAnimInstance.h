@@ -31,6 +31,9 @@ public:
 protected:
 	/* Handle turning in place variables*/
 	void TurnInPlace();
+
+	/* Handle calculations for leaning while running*/
+	void Lean(float DeltaTime);
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"));
 	class AShooterChracter* ShooterCharacter;
@@ -81,4 +84,26 @@ private:
 	/* Offset state used to determine which Aim Offset to use*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Trun In Place", meta = (AllowPrivateAccess = "true"));
 	EOffsetState OffsetState;
+
+	/* Character Yaw this frame*/
+	FRotator CharacterRotation;
+
+	/* Character Yaw last frame*/
+	FRotator CharacterRotationLastFrame;
+
+	/* Yaw delta used for leaning in the running blendspace*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Lean, meta = (AllowPrivateAccess = "true"));
+	float YawwDelta;
+
+	/* True when crouching*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = LeCrouchingan, meta = (AllowPrivateAccess = "true"));
+	bool bCrouching;
+
+	/* Change the recoil weight based on turning in place aiming*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	float RecoilWeight;
+
+	/* True when turning in place*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"));
+	bool bTurningInPlace;
 };

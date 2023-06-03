@@ -63,6 +63,10 @@ AShooterChracter::AShooterChracter()
 	, StartingARAmmo(120)
 	// Combat variables
 	, CombatState(ECombatState::ECS_Unoccupied)
+	, bCrouching(false)
+
+	, CrouchMovementSpeed(300.f)
+	, BaseMovementSpeed(650.f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -108,6 +112,8 @@ void AShooterChracter::BeginPlay()
 	EquipWeapon(SpawnDefaultWeapon());
 
 	InitializeAmmoMap();
+
+	GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
 }
 // Called every frame
 void AShooterChracter::Tick(float DeltaTime)
@@ -160,12 +166,31 @@ void AShooterChracter::MoveRight(float Value)
 void AShooterChracter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame form the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());// deg/sec * sec/frame
+
+	if (!Rate)
+		BaseTurnRate = 0.f;
+
+	BaseTurnRate = FMath::FInterpTo(
+		1,
+		Rate,
+		GetWorld()->GetDeltaSeconds(),
+		0.01);
+
+	AddControllerYawInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());// deg/sec * sec/frame
 }
 
 void AShooterChracter::LookUpAtRate(float Rate)
 {
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());// deg/sec * sec/frame
+	if (!Rate)
+		BaseLookUpRate = 0.f;
+
+	BaseLookUpRate = FMath::FInterpTo(
+		1,
+		Rate,
+		GetWorld()->GetDeltaSeconds(),
+		0.01);
+
+	AddControllerYawInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());// deg/sec * sec/frame
 }
 
 void AShooterChracter::Turn(float Value)
@@ -870,6 +895,9 @@ void AShooterChracter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	PlayerInputComponent->BindAction("ReloadButton", IE_Pressed,
 		this, &AShooterChracter::ReloadButtonPressed);
+
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed,
+		this, &AShooterChracter::CrouchButtonPressed);
 }
 
 
@@ -894,5 +922,35 @@ void AShooterChracter::GetPickUpItem(AItem* Item)
 	{
 		SwapWeapon(Weapon);
 		
+	}
+}
+
+void AShooterChracter::CrouchButtonPressed()
+{
+	if (!GetCharacterMovement()->IsFalling())
+	{
+		bCrouching = !bCrouching;
+	}
+
+	if (bCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
+	}
+	else
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	}
+}
+
+void AShooterChracter::Jump()
+{
+	if (bCrouching)
+	{
+		bCrouching = false;
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	}
+	else
+	{
+		ACharacter::Jump();
 	}
 }
