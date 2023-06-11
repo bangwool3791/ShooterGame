@@ -251,9 +251,11 @@ private:
 	bool bAiming;
 
 	/* Default camera field of view value */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"));
 	float CameraDefaultFOV;
 
 	/* Field of view value for when zoom in */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"));
 	float CameraZoomedFOV;
 
 	/* Current field of view this frame*/

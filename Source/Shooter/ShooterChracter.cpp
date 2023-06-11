@@ -31,14 +31,14 @@ AShooterChracter::AShooterChracter()
 	// Mouse kook sensitivity scale factors
 	, MouseHipTurnRate{ 1.f }
 	, MouseHipLookUpRate{ 1.f }
-	, MouseAimingTurnRate{ 0.2f }
-	, MouseAimingLookUpRate{ 0.2f }
+	, MouseAimingTurnRate{ 0.6f }
+	, MouseAimingLookUpRate{ 0.6f }
 	// true when aiming the weapon
 	, bAiming{ false }
 	, CameraDefaultFOV{ 0.f }
 	//Camera field of view values 
 	//Your Game
-	, CameraZoomedFOV{ 35.f }
+	, CameraZoomedFOV{ 25 }
 	, CameraCurrentFOV{ 0.f }
 	, ZoomInterpSpeed{ 20.f }
 	// Crosshair spread factors
@@ -80,7 +80,7 @@ AShooterChracter::AShooterChracter()
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 180.f; //The camera follows at this distance behind the character
 	CameraBoom->bUsePawnControlRotation = true;// Rotate the arm based on the controller
-	CameraBoom->SocketOffset = FVector(0.f, 50.f, 40.f);
+	CameraBoom->SocketOffset = FVector(0.f, 50.f, 70.f);
 	//Create a follow Camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);//Attach camera to end of boom
@@ -297,11 +297,16 @@ bool AShooterChracter::GetBeamEndLocation(
 void AShooterChracter::AimingButtonPressed()
 {
 	bAiming = true;
+	GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
 }
 
 void AShooterChracter::AimingButtonReleased()
 {
 	bAiming = false;
+	if (!bCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	}
 }
 
 void AShooterChracter::CameraInterpZoom(float DeltaTime)
