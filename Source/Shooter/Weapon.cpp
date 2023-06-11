@@ -71,6 +71,7 @@ void AWeapon::ReloadAmmo(int32 Amount)
 
 bool AWeapon::ClipIsFull()
 {
+	
 	return Ammo >= MagazineCapacity;
 }
 

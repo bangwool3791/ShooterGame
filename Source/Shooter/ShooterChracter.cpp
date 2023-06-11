@@ -16,6 +16,7 @@
 
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AShooterChracter::AShooterChracter()
@@ -64,9 +65,12 @@ AShooterChracter::AShooterChracter()
 	// Combat variables
 	, CombatState(ECombatState::ECS_Unoccupied)
 	, bCrouching(false)
-
 	, CrouchMovementSpeed(300.f)
 	, BaseMovementSpeed(650.f)
+	, StandingCapsuleHalfHeight(88.f)
+	, CrouchingCapsuleHalfHeight(44.f)
+	, BaseGroundFriction(2.f)
+	, CrouchingGroundFriction(100.f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -76,7 +80,7 @@ AShooterChracter::AShooterChracter()
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 180.f; //The camera follows at this distance behind the character
 	CameraBoom->bUsePawnControlRotation = true;// Rotate the arm based on the controller
-	CameraBoom->SocketOffset = FVector(0.f, 50.f, 70.f);
+	CameraBoom->SocketOffset = FVector(0.f, 50.f, 40.f);
 	//Create a follow Camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);//Attach camera to end of boom
@@ -128,7 +132,8 @@ void AShooterChracter::Tick(float DeltaTime)
 	SetLookRates();
 
 	CalculateCrosshariSpread(DeltaTime);
-
+	// Change Capsule collision size based on crouch
+	InterpCapsuleHalfHeight(DeltaTime);
 	// CHeck OverlappedItemCount, then trace for items
 	TraceForItems();
 }
@@ -415,6 +420,31 @@ void AShooterChracter::CalculateCrosshariSpread(float DeltaTime)
 		CrosshairShootingFactor;
 
 }
+
+void AShooterChracter::InterpCapsuleHalfHeight(float DeltaTime)
+{
+	float fTargetCapsuleHalfHeight = 0.f;
+	if (bCrouching)
+	{
+		fTargetCapsuleHalfHeight = CrouchingCapsuleHalfHeight;
+	}
+	else
+	{
+		fTargetCapsuleHalfHeight = StandingCapsuleHalfHeight;
+	}
+
+	const float InterpHalfHeight = FMath::FInterpTo(GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), fTargetCapsuleHalfHeight, DeltaTime, 20.f);
+
+	// Negative value if crouching; Positive value if standing
+	float DeltaCapsuleHalfHeight{ InterpHalfHeight - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() };
+	const FVector3d MeshOffset{ 0.f, 0.f, -DeltaCapsuleHalfHeight };
+
+	GetMesh()->AddLocalOffset(MeshOffset);
+
+
+	GetCapsuleComponent()->SetCapsuleHalfHeight(InterpHalfHeight);
+}
+
 void AShooterChracter::StartCrosshairBulletFire()
 {
 	bFiringBullet = true;
@@ -935,10 +965,12 @@ void AShooterChracter::CrouchButtonPressed()
 	if (bCrouching)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
+		GetCharacterMovement()->GroundFriction = CrouchingGroundFriction;
 	}
 	else
 	{
 		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+		GetCharacterMovement()->GroundFriction = BaseGroundFriction;
 	}
 }
 

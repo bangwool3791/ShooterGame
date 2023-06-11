@@ -76,6 +76,9 @@ protected:
 
 	void CalculateCrosshariSpread(float DeltaTime);
 
+	/* Interps capsule half height when crouching/standing*/
+	void InterpCapsuleHalfHeight(float DeltaTime);
+
 	void StartCrosshairBulletFire();
 
 	void FireButtonPressed();
@@ -334,6 +337,26 @@ private:
 	/* Regular movement speed*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"));
 	float BaseMovementSpeed;
+	
+	/* Current half height of the capsule*/
+	float CurrentCapsuleHalfHegiht;
+
+	/* Half height of the cpasule when not crouching*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"));
+	float StandingCapsuleHalfHeight;
+
+	/* Half height of the cpasule when crouching*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"));
+	float CrouchingCapsuleHalfHeight;
+
+	/* Ground friction while not crouching*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"));
+	float BaseGroundFriction;
+
+	/* Ground friction while crouching*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"));
+	float CrouchingGroundFriction;
+
 public:
 	/* Returns CameraBoom subobject*/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
