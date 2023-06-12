@@ -18,6 +18,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 
+#include "Ammo.h"
+
 // Sets default values
 AShooterChracter::AShooterChracter()
 // Base rates for turning/looking up
@@ -71,6 +73,7 @@ AShooterChracter::AShooterChracter()
 	, CrouchingCapsuleHalfHeight(44.f)
 	, BaseGroundFriction(2.f)
 	, CrouchingGroundFriction(100.f)
+	, bAimingButtonPressed(false)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -296,17 +299,19 @@ bool AShooterChracter::GetBeamEndLocation(
 
 void AShooterChracter::AimingButtonPressed()
 {
-	bAiming = true;
-	GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
+	bAimingButtonPressed = true;
+
+	if (CombatState != ECombatState::ECS_Reloading)
+	{
+		Aim();
+	}
 }
 
 void AShooterChracter::AimingButtonReleased()
 {
-	bAiming = false;
-	if (!bCrouching)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
-	}
+	bAimingButtonPressed = false;
+
+	StopAiming();
 }
 
 void AShooterChracter::CameraInterpZoom(float DeltaTime)
@@ -450,6 +455,45 @@ void AShooterChracter::InterpCapsuleHalfHeight(float DeltaTime)
 	GetCapsuleComponent()->SetCapsuleHalfHeight(InterpHalfHeight);
 }
 
+void AShooterChracter::Aim()
+{
+	bAiming = true;
+	GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
+}
+
+void AShooterChracter::StopAiming()
+{
+	bAiming = false;
+	if (!bCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	}
+}
+
+void AShooterChracter::PickupAmmo(AAmmo* Ammo)
+{
+	// check to see if AmmoMap contains Ammo's AmmoType
+	if(AmmoMap.Find(Ammo->GetAmmoType()))
+	{
+		// Get amount of ammo in our AmmoMap for Ammo's type
+		int32 AmmoCount{ AmmoMap[Ammo->GetAmmoType()] };
+		AmmoCount += Ammo->GetItemCount();
+		// Set the ammount of ammo in the Map for this type
+		AmmoMap[Ammo->GetAmmoType()] = AmmoCount;
+	}
+
+	if (EquippedWeapon->GetAmmoType() == Ammo->GetAmmoType())
+	{
+		// Check to see if the gun is empty
+		if (EquippedWeapon->GetAmmo() == 0)
+		{
+			ReloadWeapon();
+		}
+	}
+
+	Ammo->Destroy();
+}
+
 void AShooterChracter::StartCrosshairBulletFire()
 {
 	bFiringBullet = true;
@@ -562,6 +606,11 @@ void AShooterChracter::FinishReloading()
 	CombatState = ECombatState::ECS_Unoccupied;
 
 	if (EquippedWeapon == nullptr) return;
+
+	if (bAimingButtonPressed)
+	{
+		Aim();
+	}
 
 	const auto AmmoType{ EquippedWeapon->GetAmmoType() };
 	//Update the AmmoMap
@@ -845,6 +894,11 @@ void AShooterChracter::ReloadWeapon()
 
 	if (CarryingAmmo() && !EquippedWeapon->ClipIsFull()) // replace with CarryingAmmo()
 	{
+		if (bAiming)
+		{
+			StopAiming();
+		}
+
 		CombatState = ECombatState::ECS_Reloading;
 
 		UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
@@ -956,7 +1010,13 @@ void AShooterChracter::GetPickUpItem(AItem* Item)
 	if (Weapon)
 	{
 		SwapWeapon(Weapon);
-		
+	}
+
+	auto Ammo = Cast<AAmmo>(Item);
+
+	if (Ammo)
+	{
+		PickupAmmo(Ammo);
 	}
 }
 

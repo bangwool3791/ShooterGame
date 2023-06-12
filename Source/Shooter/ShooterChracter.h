@@ -79,6 +79,10 @@ protected:
 	/* Interps capsule half height when crouching/standing*/
 	void InterpCapsuleHalfHeight(float DeltaTime);
 
+	void Aim();
+	void StopAiming();
+	
+	void PickupAmmo(class AAmmo* Ammo);
 	void StartCrosshairBulletFire();
 
 	void FireButtonPressed();
@@ -358,6 +362,9 @@ private:
 	/* Ground friction while crouching*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"));
 	float CrouchingGroundFriction;
+
+	/* Used for knwoing when the aiming button is pressed*/
+	bool bAimingButtonPressed;
 
 public:
 	/* Returns CameraBoom subobject*/
