@@ -366,6 +366,9 @@ private:
 	/* Used for knwoing when the aiming button is pressed*/
 	bool bAimingButtonPressed;
 
+	/* Sound played when running*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Properties", meta = (AllowPrivateAccess = "true"));
+	class USoundCue* MoveSound;
 public:
 	/* Returns CameraBoom subobject*/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

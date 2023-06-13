@@ -20,6 +20,9 @@
 
 #include "Ammo.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+
 // Sets default values
 AShooterChracter::AShooterChracter()
 // Base rates for turning/looking up
@@ -779,11 +782,6 @@ void AShooterChracter::SelectButtonPressed()
 	if (TraceHitItem)
 	{
 		TraceHitItem->StartItemCurve(this);
-
-		if (TraceHitItem->GetPickupSound())
-		{
-			UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickupSound());
-		}
 	}
 }
 

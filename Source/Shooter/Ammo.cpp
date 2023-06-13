@@ -6,6 +6,9 @@
 #include "Components\WidgetComponent.h"
 #include "Components\SphereComponent.h"
 
+#include "ShooterChracter.h"
+#include "Kismet/GameplayStatics.h"
+
 AAmmo::AAmmo()
 {
 	// Construct the AmmoMesh component and set it as the root
@@ -16,6 +19,9 @@ AAmmo::AAmmo()
 	GetPickupWidget()->SetupAttachment(GetRootComponent());
 	GetAreaSphere()->SetupAttachment(GetRootComponent());
 
+	AmmoCollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AmmoCollisionSphere"));
+	AmmoCollisionSphere->SetupAttachment(GetRootComponent());
+	AmmoCollisionSphere->SetSphereRadius(20.f);
 }
 
 void AAmmo::Tick(float DeltaTime)
@@ -26,6 +32,8 @@ void AAmmo::Tick(float DeltaTime)
 void AAmmo::BeginPlay()
 {
 	Super::BeginPlay();
+
+	AmmoCollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AAmmo::AmmoSphereOverlap);
 }
 
 void AAmmo::SetItemProperties(EItemState State)
@@ -67,5 +75,25 @@ void AAmmo::SetItemProperties(EItemState State)
 		AmmoMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		AmmoMesh->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 		break;
+	}
+}
+
+void AAmmo::AmmoSphereOverlap(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OhterComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+		auto OverlapCharacter = Cast<AShooterChracter>(OtherActor);
+
+		if (OverlapCharacter)
+		{
+			StartItemCurve(OverlapCharacter);
+		}
+
 	}
 }
