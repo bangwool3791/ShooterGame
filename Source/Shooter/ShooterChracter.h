@@ -17,6 +17,19 @@ enum class ECombatState : uint8
 	ECS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
+
+USTRUCT(BlueprintType)
+struct FInterpLocation
+{
+	GENERATED_BODY()
+
+		// Scene component to use for its location for interping
+		UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		USceneComponent* SceneComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		int32 ItemCount;
+};
 UCLASS()
 class SHOOTER_API AShooterChracter : public ACharacter
 {
@@ -81,17 +94,17 @@ protected:
 
 	void Aim();
 	void StopAiming();
-	
-	void PickupAmmo(class AAmmo* Ammo);
-	void StartCrosshairBulletFire();
 
-	void FireButtonPressed();
-	void FireButtonReleased();
+	void PickupAmmo(class AAmmo* Ammo);
+
+	void InitializeInterpLocations();
+
+	void StartCrosshairBulletFire();
 
 	void StartFireTimer();
 
 	UFUNCTION()
-	void AutoFireReset();
+		void AutoFireReset();
 
 	/* Line trace for items under the crossharis*/
 	bool TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation);
@@ -99,7 +112,7 @@ protected:
 	/* Trace for items if OverlappedItemCount > 0 */
 	void TraceForItems();
 	UFUNCTION()
-	void FinishCrosshairBulletFire();
+		void FinishCrosshairBulletFire();
 
 	/* Spawns a default weapon and squips it*/
 	class AWeapon* SpawnDefaultWeapon();
@@ -124,6 +137,9 @@ protected:
 
 	/* FireWeapon funcitons*/
 	void PlayFireSound();
+	void FireButtonPressed();
+	void FireButtonReleased();
+
 	void SendBullet();
 	void PlayGunFireMontage();
 	/* Bound to the R key and Gamepad Face Button Left*/
@@ -135,11 +151,11 @@ protected:
 
 	/* Called from Animation Blueprint with Grab Clip notify*/
 	UFUNCTION(BlueprintCallable)
-	void GrabClip();
+		void GrabClip();
 
 	/* Called from Animation Blueprint with Release Clip notify*/
 	UFUNCTION(BlueprintCallable)
-	void ReleaseClip();
+		void ReleaseClip();
 
 	void CrouchButtonPressed();
 
@@ -221,7 +237,7 @@ private:
 	class AItem* TraceHitItemLastFrame;
 
 	/* Distance outward from the camera for the interp destination */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly,  Category = Items, meta = (AllowPrivateAccess = "true"));
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"));
 	float CameraInterpDistance;
 
 	/* Distance upward from the camera for the interp destination */
@@ -323,7 +339,7 @@ private:
 	UAnimMontage* ReloadMontage;
 
 	UFUNCTION(BlueprintCallable)
-	void FinishReloading();
+		void FinishReloading();
 
 	/* Transform of the clip when we first grab the clip during reloading*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"));
@@ -343,7 +359,7 @@ private:
 	/* Regular movement speed*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"));
 	float BaseMovementSpeed;
-	
+
 	/* Current half height of the capsule*/
 	float CurrentCapsuleHalfHegiht;
 
@@ -366,6 +382,30 @@ private:
 	/* Used for knwoing when the aiming button is pressed*/
 	bool bAimingButtonPressed;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* WeaponInterpComp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* InterpComp1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* InterpComp2;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* InterpComp3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* InterpComp4;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* InterpComp5;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* InterpComp6;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		TArray<FInterpLocation> InterpLocations;
+
 	/* Sound played when running*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Properties", meta = (AllowPrivateAccess = "true"));
 	class USoundCue* MoveSound;
@@ -385,10 +425,17 @@ public:
 	/* Adds/subtracts to/from OverlappedItemCOunt and updates bShouldTraceForItems*/
 	void IncreamentOverlappedItemCount(int8 Amount);
 
-	FVector GetCameraInterpLocation();
+	// No longer needed; AItem has GetInterpLocation
+	//FVector GetCameraInterpLocation();
 
 	void GetPickUpItem(AItem* Item);
-	
+
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 	FORCEINLINE bool GetCrouching() const { return bCrouching; }
+	FInterpLocation GetInterpLocation(int32 Index);
+
+	// Returns the index in InterpLocatoins array with the lowest ItemCount
+	int32 GetInterpLocationIndex();
+
+	void IncrementInterpLocItemCount(int32 Index, int32 Amount);
 };

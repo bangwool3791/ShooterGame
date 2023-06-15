@@ -59,7 +59,7 @@ AShooterChracter::AShooterChracter()
 	, AutomaticFireRate{ 0.1f }
 	, bShouldFire{ true }
 	, bFireButtonPressed{ false }
-	, bShouldTraceForItems{false}
+	, bShouldTraceForItems{ false }
 
 	// Camera interp location valuable
 	, CameraInterpDistance(250.f)
@@ -106,6 +106,28 @@ AShooterChracter::AShooterChracter()
 	// Create Hand Scene Component 
 	HandSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("HandSceneComp"));
 
+	WeaponInterpComp = CreateDefaultSubobject<USceneComponent>(TEXT("Weapon Interpolation Component"));
+	WeaponInterpComp->SetupAttachment(GetFollowCamera());
+
+	// Create Interpolation Component
+	InterpComp1 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Component 1"));
+	InterpComp1->SetupAttachment(GetFollowCamera());
+
+	InterpComp2 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Component 2"));
+	InterpComp2->SetupAttachment(GetFollowCamera());
+
+	InterpComp3 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Component 3"));
+	InterpComp3->SetupAttachment(GetFollowCamera());
+
+	InterpComp4 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Component 4"));
+	InterpComp4->SetupAttachment(GetFollowCamera());
+
+	InterpComp5 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Component 5"));
+	InterpComp5->SetupAttachment(GetFollowCamera());
+
+	InterpComp6 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Component 6"));
+	InterpComp6->SetupAttachment(GetFollowCamera());
+
 }
 
 // Called when the game starts or when spawned
@@ -124,6 +146,9 @@ void AShooterChracter::BeginPlay()
 	InitializeAmmoMap();
 
 	GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+
+	// Create FInterpLocation structs for each interp location. Add to array
+	InitializeInterpLocations();
 }
 // Called every frame
 void AShooterChracter::Tick(float DeltaTime)
@@ -458,6 +483,16 @@ void AShooterChracter::InterpCapsuleHalfHeight(float DeltaTime)
 	GetCapsuleComponent()->SetCapsuleHalfHeight(InterpHalfHeight);
 }
 
+void AShooterChracter::PlayFireSound()
+{
+	// Play Fire sound
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySound2D(this, FireSound);
+	}
+}
+
+
 void AShooterChracter::Aim()
 {
 	bAiming = true;
@@ -476,7 +511,7 @@ void AShooterChracter::StopAiming()
 void AShooterChracter::PickupAmmo(AAmmo* Ammo)
 {
 	// check to see if AmmoMap contains Ammo's AmmoType
-	if(AmmoMap.Find(Ammo->GetAmmoType()))
+	if (AmmoMap.Find(Ammo->GetAmmoType()))
 	{
 		// Get amount of ammo in our AmmoMap for Ammo's type
 		int32 AmmoCount{ AmmoMap[Ammo->GetAmmoType()] };
@@ -506,17 +541,6 @@ void AShooterChracter::StartCrosshairBulletFire()
 		this,
 		&AShooterChracter::FinishCrosshairBulletFire,
 		ShootTimeDuration);
-}
-
-void AShooterChracter::FireButtonPressed()
-{
-	bFireButtonPressed = true;
-	FireWeapon();
-}
-
-void AShooterChracter::FireButtonReleased()
-{
-	bFireButtonPressed = false;
 }
 
 void AShooterChracter::StartFireTimer()
@@ -625,7 +649,7 @@ void AShooterChracter::FinishReloading()
 		// Space left in the magazine of EquippedWeapon
 		const int32 MagEmptySpace = EquippedWeapon->GetMagazineCapacity() - EquippedWeapon->GetAmmo();
 
-		if (MagEmptySpace > CarriedAmmo) 
+		if (MagEmptySpace > CarriedAmmo)
 		{
 			// Reload the magazine with all the ammo we are carrying
 			EquippedWeapon->ReloadAmmo(CarriedAmmo);
@@ -712,7 +736,7 @@ void AShooterChracter::TraceForItems()
 			}
 		}
 	}
-	else 
+	else
 	{
 		if (TraceHitItemLastFrame && TraceHitItemLastFrame->GetPickupWidget())
 		{
@@ -729,7 +753,7 @@ AWeapon* AShooterChracter::SpawnDefaultWeapon()
 		// Spawn the Weapon
 		return GetWorld()->SpawnActor<AWeapon>(DefaultWeaponClass);
 
-		
+
 		// Get the Hand Socket
 		//const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(
 		//	FName("RightHandSocket"));
@@ -813,13 +837,15 @@ bool AShooterChracter::WeaponHasAmmo()
 	return EquippedWeapon->GetAmmo() > 0;
 }
 
-void AShooterChracter::PlayFireSound()
+void AShooterChracter::FireButtonPressed()
 {
-	// Play Fire sound
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySound2D(this, FireSound);
-	}
+	bFireButtonPressed = true;
+	FireWeapon();
+}
+
+void AShooterChracter::FireButtonReleased()
+{
+	bFireButtonPressed = false;
 }
 
 void AShooterChracter::SendBullet()
@@ -965,10 +991,8 @@ void AShooterChracter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AShooterChracter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AShooterChracter::StopJumping);
 
-	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this,
-		&AShooterChracter::FireButtonPressed);
-	PlayerInputComponent->BindAction("FireButton", IE_Released, this,
-		&AShooterChracter::FireButtonReleased);
+	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AShooterChracter::FireButtonPressed);
+	PlayerInputComponent->BindAction("FireButton", IE_Released, this, &AShooterChracter::FireButtonReleased);
 
 	PlayerInputComponent->BindAction("AimingButton", IE_Pressed,
 		this, &AShooterChracter::AimingButtonPressed);
@@ -987,14 +1011,14 @@ void AShooterChracter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		this, &AShooterChracter::CrouchButtonPressed);
 }
 
-
-FVector AShooterChracter::GetCameraInterpLocation()
-{
-	const FVector CameraWorldLocation{ FollowCamera->GetComponentLocation() };
-	const FVector CameraForward{ FollowCamera->GetForwardVector() };
-	// Desired = CameraWolrdLocation + Forward * A + Up * B
-	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.f, 0.f, CameraInterpElevation);
-}
+/* No longer needed; AItem has GetInterpLocation*/
+//FVector AShooterChracter::GetCameraInterpLocation()
+//{
+//	const FVector CameraWorldLocation{ FollowCamera->GetComponentLocation() };
+//	const FVector CameraForward{ FollowCamera->GetForwardVector() };
+//	// Desired = CameraWolrdLocation + Forward * A + Up * B
+//	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.f, 0.f, CameraInterpElevation);
+//}
 
 void AShooterChracter::GetPickUpItem(AItem* Item)
 {
@@ -1047,5 +1071,68 @@ void AShooterChracter::Jump()
 	else
 	{
 		ACharacter::Jump();
+	}
+}
+
+
+FInterpLocation AShooterChracter::GetInterpLocation(int32 Index)
+{
+	if (0 <= Index && Index <= InterpLocations.Num())
+	{
+		return InterpLocations[Index];
+	}
+	return FInterpLocation();
+}
+
+void AShooterChracter::InitializeInterpLocations()
+{
+	FInterpLocation WeaponLocation{ WeaponInterpComp, 0 };
+	InterpLocations.Add(WeaponLocation);
+
+	FInterpLocation InterpLoc1{ InterpComp1, 0 };
+	InterpLocations.Add(InterpLoc1);
+
+	FInterpLocation InterpLoc2{ InterpComp2, 0 };
+	InterpLocations.Add(InterpLoc2);
+
+	FInterpLocation InterpLoc3{ InterpComp3, 0 };
+	InterpLocations.Add(InterpLoc3);
+
+	FInterpLocation InterpLoc4{ InterpComp4, 0 };
+	InterpLocations.Add(InterpLoc4);
+
+	FInterpLocation InterpLoc5{ InterpComp5, 0 };
+	InterpLocations.Add(InterpLoc5);
+
+	FInterpLocation InterpLoc6{ InterpComp6, 0 };
+	InterpLocations.Add(InterpLoc6);
+}
+
+int32 AShooterChracter::GetInterpLocationIndex()
+{
+	int32 LowestIndex = 1;
+	int32 LowestCount = INT_MAX;
+
+	for (int32 i = 1; i < InterpLocations.Num(); ++i)
+	{
+		if (InterpLocations[i].ItemCount < LowestCount)
+		{
+			LowestIndex = i;
+			LowestCount = InterpLocations[i].ItemCount;
+		}
+	}
+	return LowestIndex;
+}
+
+void AShooterChracter::IncrementInterpLocItemCount(int32 Index, int32 Amount)
+{
+	if (Amount < -1 || Amount > 1)
+	{
+		return;
+	}
+
+	if (InterpLocations.Num() >= Index)
+	{
+		InterpLocations[Index].ItemCount += Amount;
 	}
 }
