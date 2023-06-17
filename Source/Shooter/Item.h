@@ -80,10 +80,14 @@ protected:
 
 	/* Handles item interpolation when in the EquipInterping state */
 	void ItemInterp(float DeltaTime);
+
+	void PlayPickupSound();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// Called in AShooterCharacter::GetPickupItem
+	void PlayEquipSound();
 private:
 	/* Skeletal Mesh for the item*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"));
@@ -188,4 +192,5 @@ public:
 
 	// Called from the AShooterCharacter class
 	void StartItemCurve(AShooterChracter* Char);
+
 };
